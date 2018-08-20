@@ -16,8 +16,14 @@ canvas {
     float: right;
 }
 
-p {
+.title {
     color: black;
     text-align: center;
     font-size: 2em ;
+}
+
+.Game_instructions {
+    color: black;
+    text-align: center;
+    font-size: 1em ;
 }
