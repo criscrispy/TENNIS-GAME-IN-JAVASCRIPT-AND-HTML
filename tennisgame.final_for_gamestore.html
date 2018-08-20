@@ -1,0 +1,336 @@
+<html>
+<head>
+<body>
+<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+</head>
+<div>
+	<p> TENNIS GAME </p>
+	<button id="submit_score">Submit score</button><br>
+	<button id="save">Save</button>
+	<button id="load">Load</button>
+
+</div>
+<!-- canvas id named gameCanvas is a label that we will be able to use to
+display graphics unto it. -->
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+/**canvas variable(like container) handles the dimensions of our  display area*/
+
+//NEW information
+
+$(document).ready( function() {
+   "use strict";
+   var canvas;
+
+   /**canvasContext variable handles graphical information in the canvas*/
+   var canvasContext;
+
+   /** variable stores a number or a value of 50 and it is labeled as "ballX".
+   ballX and ballY represent the horizontal and vertical position of the ball */
+   var ballX = 50;
+   var ballY = 50;
+
+   /**ballX and ballY represent horizontal
+   and vertical move0ment respectivelly*/
+   var ballSpeedX = 10;
+   var ballSpeedY = 4;
+
+   var player1Score = 0;
+   var player2Score = 0;
+   const WINNING_SCORE = 3;
+
+   var showingWinScreen = false;
+   /**Starting position of paddles but changes within gameplay*/
+   var paddle1Y = 250;
+   var paddle2Y = 250;
+
+   const PADDLE_THICKNESS = 10;
+   const PADDLE_HEIGHT = 100;
+
+   /** This is the function for the movement of the mouse so basically,
+    this function is run everytime the mouse moves */
+   function calculateMousePos(evt) {
+
+   	/** canvas.getBoundingClientRect is the area of our canvas for our game
+   	defined for the mouse*/
+   	var rect = canvas.getBoundingClientRect();
+
+   	/** The documentElement property returns the documentElement of the
+   	document, as an Element object.
+   	For HTML documents the returned object is the
+   	<html> element.*/
+   	var root = document.documentElement;
+   	/** From what is a above,  this next pair of code "var mouseX and Y"
+   	defines the position of the mouse outside the canvas. So we take out the
+   	top and left of the rectangle and also our scrolling so that mouse does
+   	what it is supposed to do*/
+   	var mouseX = evt.clientX - rect.left - root.scrollLeft;
+   	var mouseY = evt.clientY - rect.top - root.scrollTop;
+   	return {
+   		x:mouseX,
+   		y:mouseY
+   	};
+   }
+
+   function handleMouseClick(evt) {
+   	if(showingWinScreen) {
+   		player1Score = 0;
+   		player2Score = 0;
+   		showingWinScreen = false;
+   	}
+   }
+
+   /** window.onload tells the browser that as soon as the window finish loading,
+   run the function or the series of code which is described within these braces.
+   In this case our game will not start running until all of our page has loaded.
+   */
+   window.onload = function() {
+   	canvas = document.getElementById('gameCanvas');
+   	canvasContext = canvas.getContext('2d');
+
+   	/**This is to set a timer that calls the "drawEverything and move
+   	drawEverything"
+   	at a regular interval,
+   	in this case, 1000 milliseconds or a second*/
+   	var framesPerSecond = 30;
+   	setInterval(function() {
+   			moveEverything();
+   			drawEverything();
+   		}, 1000/framesPerSecond);
+
+   	/**addEventListener handles the input on the mouse movement.*/
+
+   	canvas.addEventListener('mousedown', handleMouseClick);
+
+   	canvas.addEventListener('mousemove',
+   		function(evt) {
+   			var mousePos = calculateMousePos(evt);
+   			/**Left paddle is moving in relation to the mouse position,
+   			By subtracting the half of the PADDLE_HEIGHT from the position
+   			of the mouse, the mouse is always going to be in the middle
+   			of the paddle. */
+   			paddle1Y = mousePos.y - (PADDLE_HEIGHT/2);
+   		});
+   }
+
+   function ballReset() {
+   	/**Upon reset, the ball will move in opposite direction
+   	of the last movement from the centre to start the game*/
+   	if(player1Score >= WINNING_SCORE ||
+   		player2Score >= WINNING_SCORE) {
+
+   		showingWinScreen = true;
+
+   	}
+
+   	ballSpeedX = -ballSpeedX;
+   	ballX = canvas.width/2;
+   	ballY = canvas.height/2;
+   }
+   //computer paddle movement function
+   function computerMovement() {
+   	var paddle2YCenter = paddle2Y + (PADDLE_HEIGHT/2);
+   	if(paddle2YCenter < ballY - 35) {
+   		paddle2Y = paddle2Y + 6;
+   	} else if(paddle2YCenter > ballY + 35) {
+   		paddle2Y = paddle2Y - 6;
+   	}
+   }
+
+   function moveEverything() {
+   	if(showingWinScreen) {
+   		return;
+   	}
+
+   	computerMovement();
+
+   	ballX = ballX + ballSpeedX;
+   	ballY = ballY + ballSpeedY;
+
+   	if(ballX < 0) {
+   		if(ballY > paddle1Y &&
+   			ballY < paddle1Y+PADDLE_HEIGHT) {
+   			ballSpeedX = -ballSpeedX;
+
+   			var deltaY = ballY
+   					-(paddle1Y+PADDLE_HEIGHT/2);
+   			ballSpeedY = deltaY * 0.35;
+   		} else {
+   			player2Score++; // must be BEFORE ballReset()
+   			ballReset();
+   		}
+   	}
+   	if(ballX > canvas.width) {
+   		if(ballY > paddle2Y &&
+   			ballY < paddle2Y+PADDLE_HEIGHT) {
+   			ballSpeedX = -ballSpeedX;
+
+   			var deltaY = ballY
+   					-(paddle2Y+PADDLE_HEIGHT/2);
+   			ballSpeedY = deltaY * 0.35;
+   		} else {
+   			player1Score++; // must be BEFORE ballReset()
+   			ballReset();
+   		}
+   	}
+   	if(ballY < 0) {
+   		ballSpeedY = -ballSpeedY;
+   	}
+   	if(ballY > canvas.height) {
+   		ballSpeedY = -ballSpeedY;
+   	}
+   }
+
+   function drawNet() {
+   	for(var i=0;i<canvas.height;i+=40) {
+   		colorRect(canvas.width/2-1,i,2,20,'white');
+   	}
+   }
+
+   function drawEverything() {
+   	// next line blanks out the screen with black
+   	colorRect(0,0,canvas.width,canvas.height,'black');
+
+   	if(showingWinScreen) {
+   		canvasContext.fillStyle = 'white';
+
+   		if(player1Score >= WINNING_SCORE) {
+   			canvasContext.fillText("Left Player Won", 350, 200);
+   		} else if(player2Score >= WINNING_SCORE) {
+   			canvasContext.fillText("Right Player Won", 350, 200);
+   		}
+
+   		canvasContext.fillText("click to continue", 350, 500);
+   		return;
+   	}
+
+   	drawNet();
+
+   	// this is left player paddle
+   	colorRect(0,paddle1Y,PADDLE_THICKNESS,PADDLE_HEIGHT,'white');
+
+   	// this is right computer paddle
+   	colorRect(canvas.width-PADDLE_THICKNESS,paddle2Y,PADDLE_THICKNESS,PADDLE_HEIGHT,'white');
+
+   	// draws ball
+   	colorCircle(ballX, ballY, 10, 'white');
+
+   	canvasContext.fillText(player1Score, 100, 100);
+   	canvasContext.fillText(player2Score, canvas.width-100, 100);
+   }
+
+   //function that actually fires for the ball to be drawn
+   function colorCircle(centerX, centerY, radius, drawColor) {
+   	canvasContext.fillStyle = drawColor;
+   	canvasContext.beginPath();
+   	canvasContext.arc(centerX, centerY, radius, 0,Math.PI*2,true);
+   	canvasContext.fill();
+   }
+
+   //function that actually fires for the canvas to be drawn
+   function colorRect(leftX,topY, width,height, drawColor) {
+   	canvasContext.fillStyle = drawColor;
+   	canvasContext.fillRect(leftX,topY, width,height);
+   }
+   // These variable track the state of this "game"
+   // var playerItems = [];
+   // var points = 0;
+
+   // Simulates "game over" when a score would be sent
+   $("#submit_score").click( function () {
+	 var msg = {
+	   "messageType": "SCORE",
+	   "score": parseFloat(player1Score.text())
+	 };
+	 window.parent.postMessage(msg, "*");
+   });
+
+   // Sends this game's state to the service.
+   // The format of the game state is decided
+   // by the game
+   $("#save").click( function () {
+	 var msg = {
+	   "messageType": "SAVE",
+	   "gameState": {
+		 "playerItems": playerItems,
+		 "score": parseFloat($("#score").text())
+	   }
+	 };
+	 window.parent.postMessage(msg, "*");
+   });
+
+   // Sends a request to the service for a
+   // state to be sent, if there is one.
+   $("#load").click( function () {
+	 var msg = {
+	   "messageType": "LOAD_REQUEST",
+	 };
+	 window.parent.postMessage(msg, "*");
+   });
+
+   // Listen incoming messages, if the messageType
+   // is LOAD then the game state will be loaded.
+   // Note that no checking is done, whether the
+   // gameState in the incoming message contains
+   // correct information.
+   //
+   // Also handles any errors that the service
+   // wants to send (displays them as an alert).
+   window.addEventListener("message", function(evt) {
+	 if(evt.data.messageType === "LOAD") {
+	   playerItems = evt.data.gameState.playerItems;
+	   points = evt.data.gameState.score;
+	   $("#score").text(points);
+	   updateItems();
+	 } else if (evt.data.messageType === "ERROR") {
+	   alert(evt.data.info);
+	 }
+   });
+
+   // This is part of the mechanics of the "game"
+   // it does not relate to the messaging with the
+   // service.
+   //
+   // Adds an item to the players inventory
+   $("#add_item").click( function () {
+	 playerItems.push("A rock");
+	 $("#new_item").val("");
+	 updateItems();
+   });
+
+   $("#add_points").click(function () {
+	 points += 10;
+	 $("#score").text(points);
+   });
+
+   // This is part of the mechanics of the "game"
+   // it does not relate to the messaging with the
+   // service.
+   //
+   // "Redraws" the inventory of the player. Used
+   // when items are added or the game is loaded
+   function updateItems() {
+	 $("#item_list").html("");
+	 for (var i = playerItems.length - 1; i >= 0; i--) {
+	   $("#item_list").append("<li>" + playerItems[i] + "</li>");
+	 }
+   }
+
+   // Request the service to set the resolution of the
+   // iframe correspondingly
+   var message =  {
+	 messageType: "SETTING",
+	 options: {
+	   "width": 700, //Integer
+	   "height": 300 //Integer
+	   }
+   };
+   window.parent.postMessage(message, "*");
+
+ });
+
+
+</script>
+</body>
+</html>
